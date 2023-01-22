@@ -202,7 +202,7 @@ build_odin() {
 		EXTRAFLAGS="-DNIGHTLY -O3"
 		;;
 	*)
-		error "Build mode \"$1\" unsupported!"
+		panic "Build mode unsupported!"
 		;;
 	esac
 
@@ -215,7 +215,33 @@ run_demo() {
 	./odin run examples/demo -vet -strict-style -- Hellope World
 }
 
-if [ $# -eq 0 ]; then
+have_which() {
+	if ! command -v which > /dev/null 2>&1 ; then
+		panic "Could not find \`which\`"
+	fi
+}
+
+have_which
+
+case $OS in
+Linux)
+	config_linux
+	;;
+Darwin)
+	config_darwin
+	;;
+OpenBSD)
+	config_openbsd
+	;;
+FreeBSD)
+	config_freebsd
+	;;
+*)
+	panic "Platform unsupported!"
+	;;
+esac
+
+if [[ $# -eq 0 ]]; then
 	build_odin debug
 	run_demo
 
@@ -224,10 +250,10 @@ if [ $# -eq 0 ]; then
 elif [ $# -eq 1 ]; then
 	case $1 in
 	report)
-		if [ ! -f "./odin" ]; then
+		if [[ ! -f "./odin" ]]; then
 			build_odin debug
-			run_demo
 		fi
+
 		./odin report
 		exit 0
 		;;
@@ -239,6 +265,9 @@ elif [ $# -eq 1 ]; then
 		build_odin $1
 		;;
 	esac
+
+	run_demo
+	exit 0
 else
 	panic "Too many arguments!"
 fi
