@@ -1,12 +1,12 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 set -eu
 
 : ${CPPFLAGS=}
 : ${CXXFLAGS=}
 : ${LDFLAGS=}
-: ${ODIN_VERSION=dev-$(date +"%Y-%m")}
-: ${GIT_SHA=}
+: ${LLVM_CONFIG=}
 
+CPPFLAGS="$CPPFLAGS -DODIN_VERSION_RAW=\"dev-$(date +"%Y-%m")\""
 CXXFLAGS="$CXXFLAGS -std=c++14"
 DISABLED_WARNINGS="-Wno-switch -Wno-macro-redefined -Wno-unused-value"
 LDFLAGS="$LDFLAGS -pthread -lm"
@@ -202,7 +202,7 @@ build_odin() {
 		EXTRAFLAGS="-DNIGHTLY -O3"
 		;;
 	*)
-		panic "Build mode unsupported!"
+		error "Build mode \"$1\" unsupported!"
 		;;
 	esac
 
@@ -215,33 +215,7 @@ run_demo() {
 	./odin run examples/demo -vet -strict-style -- Hellope World
 }
 
-have_which() {
-	if ! command -v which > /dev/null 2>&1 ; then
-		panic "Could not find \`which\`"
-	fi
-}
-
-have_which
-
-case $OS in
-Linux)
-	config_linux
-	;;
-Darwin)
-	config_darwin
-	;;
-OpenBSD)
-	config_openbsd
-	;;
-FreeBSD)
-	config_freebsd
-	;;
-*)
-	panic "Platform unsupported!"
-	;;
-esac
-
-if [[ $# -eq 0 ]]; then
+if [ $# -eq 0 ]; then
 	build_odin debug
 	run_demo
 
@@ -250,12 +224,8 @@ if [[ $# -eq 0 ]]; then
 elif [ $# -eq 1 ]; then
 	case $1 in
 	report)
-		if [[ ! -f "./odin" ]]; then
-			build_odin debug
-		fi
-
+		[ ! -f "./odin" ] && build_odin debug
 		./odin report
-		exit 0
 		;;
 	debug)
 		build_odin debug
@@ -265,9 +235,7 @@ elif [ $# -eq 1 ]; then
 		build_odin $1
 		;;
 	esac
-
 	run_demo
-	exit 0
 else
-	panic "Too many arguments!"
+	error "Too many arguments!"
 fi
