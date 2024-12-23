@@ -223,7 +223,10 @@ if [ $# -eq 0 ]; then
 elif [ $# -eq 1 ]; then
 	case $1 in
 	report)
-		[ ! -f "./odin" ] && build_odin debug
+		if [ ! -f "./odin" ]; then
+			build_odin debug
+			run_demo
+		fi
 		./odin report
 		;;
 	debug)
@@ -234,7 +237,6 @@ elif [ $# -eq 1 ]; then
 		build_odin $1
 		;;
 	esac
-	run_demo
 else
 	error "Too many arguments!"
 fi

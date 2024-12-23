@@ -10,16 +10,16 @@ default:
 	PROGRAM=make ./build_odin.sh # debug
 
 debug:
-	LLVM_CONFIG=llvm-config OS_NAME=Linux OS=Linux ./build_odin.sh debug
+	./build_odin.sh debug
 
 release:
-	LLVM_CONFIG=llvm-config OS_NAME=Linux .OS=Linux ./build_odin.sh release
+	./build_odin.sh release
 
 release-native:
 	./build_odin.sh release-native
 
 release_native:
-	LLVM_CONFIG=llvm-config OS_NAME=Linux .OS=Linux ./build_odin.sh release-native
+	./build_odin.sh release-native
 
 nightly:
-	LLVM_CONFIG=llvm-config OS_NAME=Linux .OS=Linux ./build_odin.sh nightly
+	./build_odin.sh nightly
