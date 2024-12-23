@@ -79,32 +79,31 @@ panic() {
 	exit 1
 }
 
-version() { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }
 
-config_darwin() {
-	local ARCH=$(uname -m)
-	: ${LLVM_CONFIG=llvm-config}
+LLVM_VERSION="$($LLVM_CONFIG --version)"
+LLVM_VERSION_MAJOR="$(echo $LLVM_VERSION | awk -F. '{print $1}')"
+LLVM_VERSION_MINOR="$(echo $LLVM_VERSION | awk -F. '{print $2}')"
+LLVM_VERSION_PATCH="$(echo $LLVM_VERSION | awk -F. '{print $3}')"
 
-	# allow for arm only llvm's with version 13
-	if [ "${ARCH}" == "arm64" ]; then
-		MIN_LLVM_VERSION=("13.0.0")
-	else
-		# allow for x86 / amd64 all llvm versions beginning from 11
-		MIN_LLVM_VERSION=("11.1.0")
-	fi
+if [ $LLVM_VERSION_MAJOR -lt 11 ] || ([ $LLVM_VERSION_MAJOR -gt 14 ] && [ $LLVM_VERSION_MAJOR -lt 17 ]) || [ $LLVM_VERSION_MAJOR -gt 19 ]; then
+	error "Invalid LLVM version $LLVM_VERSION: must be 11, 12, 13, 14, 17, 18 or 19"
+fi
 
-	if [ $(version $($LLVM_CONFIG --version)) -lt $(version $MIN_LLVM_VERSION) ]; then
-		if [ "${ARCH}" == "arm64" ]; then
-			panic "Requirement: llvm-config must be base version 13 for arm64"
-		else
-			panic "Requirement: llvm-config must be base version greater than 11 for amd64/x86"
+case "$OS_NAME" in
+Darwin)
+	if [ "$OS_ARCH" = "arm64" ]; then
+		if [ $LLVM_VERSION_MAJOR -lt 13 ]; then
+			error "Invalid LLVM version $LLVM_VERSION: Darwin Arm64 requires LLVM 13, 14, 17, 18 or 19"
 		fi
 	fi
 
-	MAX_LLVM_VERSION=("15.999.999")
-	if [ $(version $($LLVM_CONFIG --version)) -gt $(version $MAX_LLVM_VERSION) ]; then
-		echo "Tried to use " $(which $LLVM_CONFIG) "version" $($LLVM_CONFIG --version)
-		panic "Requirement: llvm-config must be base version smaller than 15"
+	darwin_sysroot=
+	if [ $(which xcrun) ]; then
+		darwin_sysroot="--sysroot $(xcrun --sdk macosx --show-sdk-path)"
+	elif [[ -e "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk" ]]; then
+		darwin_sysroot="--sysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
+	else
+		echo "Warning: MacOSX.sdk not found."
 	fi
 
 	CXXFLAGS="$CXXFLAGS $($LLVM_CONFIG --cxxflags --ldflags) ${darwin_sysroot}"
