@@ -56,7 +56,6 @@ if [ -z "$LLVM_CONFIG" ]; then
 	fi
 fi
 
-CPPFLAGS="$CPPFLAGS -DODIN_VERSION_RAW=\"$ODIN_VERSION\""
 if [ -x "$(which clang++)" ]; then
 	: ${CXX="clang++"}
 elif [ -x "$($LLVM_CONFIG --bindir)/clang++" ]; then
@@ -64,21 +63,6 @@ elif [ -x "$($LLVM_CONFIG --bindir)/clang++" ]; then
 else
 	error "No clang++ command found. Set CXX to proceed."
 fi
-
-DISABLED_WARNINGS="-Wno-switch -Wno-macro-redefined -Wno-unused-value"
-OS=$(uname)
-LLVM_VERSION="$($LLVM_CONFIG --version)"
-LLVM_VERSION_MAJOR="$(echo $LLVM_VERSION | awk -F. '{print $1}')"
-LLVM_VERSION_MINOR="$(echo $LLVM_VERSION | awk -F. '{print $2}')"
-LLVM_VERSION_PATCH="$(echo $LLVM_VERSION | awk -F. '{print $3}')"
-
-echo "LLVM_CONFIG: ${LLVM_CONFIG}"
-
-panic() {
-	printf "%s\n" "$1"
-	exit 1
-}
-
 
 LLVM_VERSION="$($LLVM_CONFIG --version)"
 LLVM_VERSION_MAJOR="$(echo $LLVM_VERSION | awk -F. '{print $1}')"
@@ -134,46 +118,6 @@ Haiku)
 	CXXFLAGS="$CXXFLAGS -D_GNU_SOURCE $($LLVM_CONFIG --cxxflags --ldflags) -I/system/develop/headers/private/shared -I/system/develop/headers/private/kernel"
 	LDFLAGS="$LDFLAGS -lstdc++ -liconv"
 	LDFLAGS="$LDFLAGS $($LLVM_CONFIG --libs core native --system-libs)"
-}
-
-config_linux() {
-	: ${LLVM_CONFIG=}
-
-	if [ ! "$LLVM_CONFIG" ]; then
-		if [ -x "$(command -v llvm-config)" ]; then
-			LLVM_CONFIG=llvm-config
-		elif [ -x "$(command -v llvm-config-11)" ]; then
-			LLVM_CONFIG=llvm-config-11
-		elif [ -x "$(command -v llvm-config-11-64)" ]; then
-			LLVM_CONFIG=llvm-config-11-64
-		elif [ -x "$(command -v llvm-config-14)" ]; then
-			LLVM_CONFIG=llvm-config-14
-		else
-			panic "Unable to find LLVM-config"
-		fi
-	fi
-
-	MIN_LLVM_VERSION=("13.0.0")
-	if [ $(version $($LLVM_CONFIG --version)) -lt $(version $MIN_LLVM_VERSION) ]; then
-		echo "Tried to use " $(which $LLVM_CONFIG) "version" $($LLVM_CONFIG --version)
-		panic "Requirement: llvm-config must be base version greater than 11"
-	fi
-
-	MAX_LLVM_VERSION=("15.999.999")
-	if [ $(version $($LLVM_CONFIG --version)) -gt $(version $MAX_LLVM_VERSION) ]; then
-		echo "Tried to use " $(which $LLVM_CONFIG) "version" $($LLVM_CONFIG --version)
-		panic "Requirement: llvm-config must be base version smaller than 15"
-	fi
-
-	LDFLAGS="$LDFLAGS -ldl"
-	CXXFLAGS="$CXXFLAGS $($LLVM_CONFIG --cxxflags --ldflags)"
-	LDFLAGS="$LDFLAGS $($LLVM_CONFIG --libs core native --system-libs --libfiles) -Wl,-rpath=\$ORIGIN"
-
-	# Creates a copy of the llvm library in the build dir, this is meant to support compiler explorer.
-	# The annoyance is that this copy can be cluttering the development folder. TODO: split staging folders
-	# for development and compiler explorer builds
-	cp $(readlink -f $($LLVM_CONFIG --libfiles)) ./
-}
 	;;
 *)
 	error "Platform \"$OS_NAME\" unsupported"
